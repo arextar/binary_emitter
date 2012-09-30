@@ -2,7 +2,10 @@ function len (value) {
   switch (typeof value) {
     case 'number':
       return 2
-    break;
+    case 'boolean':
+      return 1
+    case 'string':
+      return value.length + 2
   }
 }
 
@@ -20,11 +23,22 @@ exports.measure = function (args) {
 exports.write = function (args, packet, offset) {
   var i
   
-  function write (val) {
-    switch (typeof val) {
+  function write (value) {
+    var i
+    switch (typeof value) {
       case 'number':
-        packet[offset++] = 1
-        packet[offset++] = val
+        packet[offset++] = 2
+        packet[offset++] = value
+      break;
+      case 'boolean':
+        packet[offset++] = +value
+      break;
+      case 'string':
+        packet[offset++] = 3
+        packet[offset++] = value.length
+        for (i = 0; i < value.length; i++) {
+          packet[offset++] = value.charCodeAt(i)
+        }
       break;
     }
   }
