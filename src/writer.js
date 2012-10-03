@@ -1,4 +1,5 @@
 function len (value) {
+  var x, length
   switch (typeof value) {
     case 'number':
       return 2
@@ -6,6 +7,24 @@ function len (value) {
       return 1
     case 'string':
       return value.length + 2
+    case 'object':
+      if ({}.toString.call(value) === '[object Array]') {
+        length = 2
+        for (x = 0; x < value.length; x++) {
+          length += len(value[x])
+        }
+        return length
+      }
+      else
+      {
+        length = 2
+        for (x in value) {
+          if (value.hasOwnProperty(x)) {
+            length += len(x) + len(value[x])
+          }
+        }
+        return length
+      }
   }
 }
 
@@ -24,7 +43,8 @@ exports.write = function (args, packet, offset) {
   var i
   
   function write (value) {
-    var i
+    var j, length, index
+
     switch (typeof value) {
       case 'number':
         packet[offset++] = 2
@@ -36,8 +56,31 @@ exports.write = function (args, packet, offset) {
       case 'string':
         packet[offset++] = 3
         packet[offset++] = value.length
-        for (i = 0; i < value.length; i++) {
-          packet[offset++] = value.charCodeAt(i)
+        for (j = 0; j < value.length; j++) {
+          packet[offset++] = value.charCodeAt(j)
+        }
+      break;
+      case 'object':
+        if ({}.toString.call(value) === '[object Array]') {
+          packet[offset++] = 4
+          packet[offset++] = value.length
+          for (j = 0; j < value.length; j++) {
+            write(value[j])
+          }
+        }
+        else
+        {
+          packet[offset++] = 5
+          index = offset++
+          length = 0
+          for (j in value) {
+            if (value.hasOwnProperty(j)) {
+              write(j)
+              write(value[j])
+              length++
+            }
+          }
+          packet[index] = length
         }
       break;
     }

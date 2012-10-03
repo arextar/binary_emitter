@@ -5,7 +5,7 @@ var sock = net.connect(1339)
 var em = bin_emitter.wrap(sock)
 
 setInterval(function () {
-  em.emit('sum', 5, 12, 13, 'in')
+  em.emit('sum', {a: 5, b: 12, c: 13}, 'in')
 }, 1000)
 
 em.on('res', function (n, unit) {
