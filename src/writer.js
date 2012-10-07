@@ -1,3 +1,5 @@
+var toString = {}.toString
+
 function len (value) {
   var x, length
   switch (typeof value) {
@@ -8,7 +10,7 @@ function len (value) {
     case 'string':
       return value.length + 2
     case 'object':
-      if ({}.toString.call(value) === '[object Array]') {
+      if (toString.call(value) === '[object Array]') {
         length = 2
         for (x = 0; x < value.length; x++) {
           length += len(value[x])
@@ -39,64 +41,68 @@ exports.measure = function (args) {
   return length
 }
 
-exports.write = function (args, packet, offset) {
-  var i
-  
-  function write (value) {
-    var j, length, index
+var offset
 
-    switch (typeof value) {
-      case 'number':
-        packet[offset++] = 2
-        packet[offset++] = value
-      break;
-      case 'boolean':
-        packet[offset++] = +value
-      break;
-      case 'string':
-        packet[offset++] = 3
+function write (value, packet) {
+  var j, length, index
+
+  switch (typeof value) {
+    case 'number':
+      packet[offset++] = 2
+      packet[offset++] = value
+    break;
+    case 'boolean':
+      packet[offset++] = +value
+    break;
+    case 'string':
+      packet[offset++] = 3
+      packet[offset++] = value.length
+      for (j = 0; j < value.length; j++) {
+        packet[offset++] = value.charCodeAt(j)
+      }
+    break;
+    case 'object':
+      if (toString.call(value) === '[object Array]') {
+        packet[offset++] = 4
         packet[offset++] = value.length
         for (j = 0; j < value.length; j++) {
-          packet[offset++] = value.charCodeAt(j)
+          write(value[j], packet)
         }
-      break;
-      case 'object':
-        if ({}.toString.call(value) === '[object Array]') {
-          packet[offset++] = 4
-          packet[offset++] = value.length
-          for (j = 0; j < value.length; j++) {
-            write(value[j])
+      }
+      else
+      {
+        packet[offset++] = 5
+        index = offset++
+        length = 0
+        for (j in value) {
+          if (value.hasOwnProperty(j)) {
+            write(j, packet)
+            write(value[j], packet)
+            length++
           }
         }
-        else
-        {
-          packet[offset++] = 5
-          index = offset++
-          length = 0
-          for (j in value) {
-            if (value.hasOwnProperty(j)) {
-              write(j)
-              write(value[j])
-              length++
-            }
-          }
-          packet[index] = length
-        }
-      break;
-    }
+        packet[index] = length
+      }
+    break;
   }
-  
+}
+
+exports.write = function (args, packet, _offset) {
+  var i
+  offset = _offset
   if (args.length === 0) return
   
   packet[offset++] = args.length
   for (i = 0; i < args.length; i++) {
-    write(args[i])
+    write(args[i], packet)
   }
 }
 
+var Data = require('./data').Data
+
 // Create a packet (an 'emit' one) to send with given arguments and type
 exports.createPacket = function (args, type) {
-  var packet = new Buffer(exports.measure(args) + 3)
+  var packet = new Data(exports.measure(args) + 3)
 
   packet[0] = packet.length - 1
   packet[1] = 1

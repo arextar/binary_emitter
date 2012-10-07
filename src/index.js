@@ -1,17 +1,17 @@
-var Socket = require('./Socket').Socket
-var Emitter = require('./Emitter').Emitter
+var Socket = exports.Socket = require('./Socket').Socket
+var Emitter = exports.Emitter = require('./Emitter').Emitter
 
 exports.wrap = function (socket) {
   if ({}.toString.call(socket) === '[object WebSocket]') {
-    socket.binaryType = 'typedarray'
+    socket.binaryType = 'arraybuffer'
     var sock = new Socket()
     
     sock.send = function (packet) {
-      socket.send(packet)
+      socket.send(packet.buffer)
     }
     
     socket.onmessage = function (e) {
-      sock.handlePacket(e.data)
+      sock.handlePacket(new Uint8Array(e.data))
     }
     
     return new Emitter(sock)
